@@ -21,7 +21,6 @@
 #define MAX_CHUNKS 1024
 #define MAX_PLAYERS 128
 #define CREATE_CHUNK_RADIUS 6
-#define RENDER_CHUNK_RADIUS 6
 #define DELETE_CHUNK_RADIUS 12
 #define MAX_RECV_LENGTH 1024
 #define MAX_TEXT_LENGTH 256
@@ -87,6 +86,7 @@ static int ortho = 0;
 static float fov = 65;
 static int typing = 0;
 static char typing_buffer[MAX_TEXT_LENGTH] = {0};
+static float render_chunk_radius = 6;
 
 int is_plant(int w) {
     return w > 16;
@@ -748,7 +748,7 @@ void render_chunks(Attrib *attrib, Player *player) {
     glUniform1f(attrib->timer, glfwGetTime());
     for (int i = 0; i < chunk_count; i++) {
         Chunk *chunk = chunks + i;
-        if (chunk_distance(chunk, p, q) > RENDER_CHUNK_RADIUS) {
+        if (chunk_distance(chunk, p, q) > render_chunk_radius) {
             continue;
         }
         if (s->y < 100 && !chunk_visible(chunk, matrix)) {
@@ -1134,6 +1134,11 @@ int main(int argc, char **argv) {
             last_commit = now;
             db_commit();
         }
+
+        // adjust block render distance to keep FPS in line
+        const int fps_target = 30;
+        if (fps.fps < fps_target * 0.9 && render_chunk_radius > 1) render_chunk_radius -= dt;
+        if (fps.fps > fps_target * 1.1 && render_chunk_radius < 12) render_chunk_radius += dt;
 
         // HANDLE MOUSE INPUT //
         if (exclusive && (px || py)) {
